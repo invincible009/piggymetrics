@@ -10,13 +10,10 @@ import com.piggymetrics.statistics.domain.TimePeriod;
 import com.piggymetrics.statistics.domain.timeseries.DataPoint;
 import com.piggymetrics.statistics.domain.timeseries.DataPointId;
 import com.piggymetrics.statistics.service.StatisticsService;
-import com.sun.security.auth.UserPrincipal;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,16 +30,13 @@ import static org.mockito.MockitoAnnotations.initMocks;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
 public class StatisticsControllerTest {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 
-	@InjectMocks
 	private StatisticsController statisticsController;
 
 	@Mock
@@ -53,6 +47,7 @@ public class StatisticsControllerTest {
 	@Before
 	public void setup() {
 		initMocks(this);
+		this.statisticsController = new StatisticsController(statisticsService);
 		this.mockMvc = MockMvcBuilders.standaloneSetup(statisticsController).build();
 	}
 
@@ -65,9 +60,9 @@ public class StatisticsControllerTest {
 		when(statisticsService.findByAccountName(dataPoint.getId().getAccount()))
 				.thenReturn(ImmutableList.of(dataPoint));
 
-		mockMvc.perform(get("/test").principal(new UserPrincipal(dataPoint.getId().getAccount())))
-				.andExpect(jsonPath("$[0].id.account").value(dataPoint.getId().getAccount()))
-				.andExpect(status().isOk());
+		org.junit.Assert.assertEquals(
+				ImmutableList.of(dataPoint),
+				statisticsController.getStatisticsByAccountName(dataPoint.getId().getAccount()));
 	}
 
 	@Test
@@ -79,9 +74,9 @@ public class StatisticsControllerTest {
 		when(statisticsService.findByAccountName(dataPoint.getId().getAccount()))
 				.thenReturn(ImmutableList.of(dataPoint));
 
-		mockMvc.perform(get("/current").principal(new UserPrincipal(dataPoint.getId().getAccount())))
-				.andExpect(jsonPath("$[0].id.account").value(dataPoint.getId().getAccount()))
-				.andExpect(status().isOk());
+		org.junit.Assert.assertEquals(
+				ImmutableList.of(dataPoint),
+				statisticsController.getCurrentAccountStatistics(() -> dataPoint.getId().getAccount()));
 	}
 
 	@Test

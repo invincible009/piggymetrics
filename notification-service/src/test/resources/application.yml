@@ -1,21 +1,10 @@
-remind:
-  cron: 0 0 0 * * *
-  email:
-    text: "Hey, {0}! We''ve missed you here on PiggyMetrics. It''s time to check your budget statistics.\r\n\r\nCheers,\r\nPiggyMetrics team"
-    subject: PiggyMetrics reminder
-
-backup:
-  cron: 0 0 12 * * *
-  email:
-    text: "Howdy, {0}. Your account backup is ready.\r\n\r\nCheers,\r\nPiggyMetrics team"
-    subject: PiggyMetrics account backup
-    attachment: backup.json
-
 spring:
+  cloud:
+    config:
+      enabled: false
   data:
     mongodb:
-      database: piggymetrics
-      port: 0
+      uri: mongodb://localhost:27017/piggymetrics
   mail:
     host: smtp.gmail.com
     port: 465
@@ -31,3 +20,16 @@ spring:
             fallback: false
           ssl:
             enable: true
+
+remind:
+  cron: 0 0 0 * * *
+  email:
+    text: "Hey, {0}! We''ve missed you here on PiggyMetrics. It''s time to check your budget statistics.\r\n\r\nCheers,\r\nPiggyMetrics team"
+    subject: PiggyMetrics reminder
+
+backup:
+  cron: 0 0 12 * * *
+  email:
+    text: "Howdy, {0}. Your account backup is ready.\r\n\r\nCheers,\r\nPiggyMetrics team"
+    subject: PiggyMetrics account backup
+    attachment: backup.json

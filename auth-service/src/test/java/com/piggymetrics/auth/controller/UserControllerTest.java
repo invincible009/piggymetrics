@@ -3,13 +3,11 @@ package com.piggymetrics.auth.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.piggymetrics.auth.domain.User;
 import com.piggymetrics.auth.service.UserService;
-import com.sun.security.auth.UserPrincipal;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -22,7 +20,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
 public class UserControllerTest {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
@@ -67,7 +64,7 @@ public class UserControllerTest {
 
 	@Test
 	public void shouldReturnCurrentUser() throws Exception {
-		mockMvc.perform(get("/users/current").principal(new UserPrincipal("test")))
+		mockMvc.perform(get("/users/current").principal(() -> "test"))
 				.andExpect(jsonPath("$.name").value("test"))
 				.andExpect(status().isOk());
 	}

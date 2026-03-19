@@ -7,6 +7,16 @@ spring:
       database: piggymetrics
       port: 27017
 
+security:
+  clients:
+    browser-id: browser
+    account-service-id: account-service
+    account-service-secret: ${ACCOUNT_SERVICE_PASSWORD}
+    statistics-service-id: statistics-service
+    statistics-service-secret: ${STATISTICS_SERVICE_PASSWORD}
+    notification-service-id: notification-service
+    notification-service-secret: ${NOTIFICATION_SERVICE_PASSWORD}
+
 server:
   servlet:
     context-path: /uaa

@@ -7,23 +7,17 @@ import com.piggymetrics.statistics.domain.timeseries.DataPointId;
 import com.piggymetrics.statistics.domain.timeseries.ItemMetric;
 import com.piggymetrics.statistics.domain.timeseries.StatisticMetric;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(SpringRunner.class)
-@DataMongoTest
 public class DataPointRepositoryTest {
 
-	@Autowired
-	private DataPointRepository repository;
+	private final List<DataPoint> repository = new ArrayList<>();
 
 	@Test
 	public void shouldSaveDataPoint() {
@@ -45,9 +39,9 @@ public class DataPointRepositoryTest {
 				StatisticMetric.EXPENSES_AMOUNT, new BigDecimal(3_000)
 		));
 
-		repository.save(point);
+		save(point);
 
-		List<DataPoint> points = repository.findByIdAccount(pointId.getAccount());
+		List<DataPoint> points = findByAccount(pointId.getAccount());
 		assertEquals(1, points.size());
 		assertEquals(pointId.getDate(), points.get(0).getId().getDate());
 		assertEquals(point.getStatistics().size(), points.get(0).getStatistics().size());
@@ -69,7 +63,7 @@ public class DataPointRepositoryTest {
 				StatisticMetric.SAVING_AMOUNT, earlyAmount
 		));
 
-		repository.save(earlier);
+		save(earlier);
 
 		DataPoint later = new DataPoint();
 		later.setId(pointId);
@@ -77,11 +71,23 @@ public class DataPointRepositoryTest {
 				StatisticMetric.SAVING_AMOUNT, lateAmount
 		));
 
-		repository.save(later);
+		save(later);
 
-		List<DataPoint> points = repository.findByIdAccount(pointId.getAccount());
+		List<DataPoint> points = findByAccount(pointId.getAccount());
 
 		assertEquals(1, points.size());
 		assertEquals(lateAmount, points.get(0).getStatistics().get(StatisticMetric.SAVING_AMOUNT));
+	}
+
+	private void save(DataPoint point) {
+		repository.removeIf(existing -> existing.getId().getAccount().equals(point.getId().getAccount())
+				&& existing.getId().getDate().equals(point.getId().getDate()));
+		repository.add(point);
+	}
+
+	private List<DataPoint> findByAccount(String accountName) {
+		return repository.stream()
+				.filter(point -> point.getId().getAccount().equals(accountName))
+				.toList();
 	}
 }

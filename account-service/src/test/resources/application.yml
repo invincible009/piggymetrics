@@ -1,5 +1,7 @@
 spring:
+  cloud:
+    config:
+      enabled: false
   data:
     mongodb:
-      database: piggymetrics
-      port: 0
+      uri: mongodb://localhost:27017/piggymetrics

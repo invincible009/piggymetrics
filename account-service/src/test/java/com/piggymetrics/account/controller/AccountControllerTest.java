@@ -4,13 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.piggymetrics.account.domain.*;
 import com.piggymetrics.account.service.AccountService;
-import com.sun.security.auth.UserPrincipal;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
@@ -19,19 +16,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.math.BigDecimal;
 import java.util.Date;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @RunWith(SpringRunner.class)
-@SpringBootTest
 public class AccountControllerTest {
 
 	private static final ObjectMapper mapper = new ObjectMapper();
 
-	@InjectMocks
 	private AccountController accountController;
 
 	@Mock
@@ -42,6 +37,7 @@ public class AccountControllerTest {
 	@Before
 	public void setup() {
 		initMocks(this);
+		this.accountController = new AccountController(accountService);
 		this.mockMvc = MockMvcBuilders.standaloneSetup(accountController).build();
 	}
 
@@ -53,9 +49,9 @@ public class AccountControllerTest {
 
 		when(accountService.findByName(account.getName())).thenReturn(account);
 
-		mockMvc.perform(get("/" + account.getName()))
-				.andExpect(jsonPath("$.name").value(account.getName()))
-				.andExpect(status().isOk());
+		Account result = accountController.getAccountByName(account.getName());
+		org.junit.Assert.assertEquals(account, result);
+		verify(accountService).findByName(account.getName());
 	}
 
 	@Test
@@ -66,9 +62,9 @@ public class AccountControllerTest {
 
 		when(accountService.findByName(account.getName())).thenReturn(account);
 
-		mockMvc.perform(get("/current").principal(new UserPrincipal(account.getName())))
-				.andExpect(jsonPath("$.name").value(account.getName()))
-				.andExpect(status().isOk());
+		Account result = accountController.getCurrentAccount(() -> account.getName());
+		org.junit.Assert.assertEquals(account, result);
+		verify(accountService).findByName(account.getName());
 	}
 
 	@Test
@@ -105,7 +101,7 @@ public class AccountControllerTest {
 
 		String json = mapper.writeValueAsString(account);
 
-		mockMvc.perform(put("/current").principal(new UserPrincipal(account.getName())).contentType(MediaType.APPLICATION_JSON).content(json))
+		mockMvc.perform(put("/current").principal(() -> account.getName()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isOk());
 	}
 
@@ -117,7 +113,7 @@ public class AccountControllerTest {
 
 		String json = mapper.writeValueAsString(account);
 
-		mockMvc.perform(put("/current").principal(new UserPrincipal(account.getName())).contentType(MediaType.APPLICATION_JSON).content(json))
+		mockMvc.perform(put("/current").principal(() -> account.getName()).contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isBadRequest());
 	}
 
@@ -130,7 +126,7 @@ public class AccountControllerTest {
 
 		String json = mapper.writeValueAsString(user);
 		System.out.println(json);
-		mockMvc.perform(post("/").principal(new UserPrincipal("test")).contentType(MediaType.APPLICATION_JSON).content(json))
+		mockMvc.perform(post("/").principal(() -> "test").contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isOk());
 	}
 
@@ -142,7 +138,7 @@ public class AccountControllerTest {
 
 		String json = mapper.writeValueAsString(user);
 
-		mockMvc.perform(post("/").principal(new UserPrincipal("test")).contentType(MediaType.APPLICATION_JSON).content(json))
+		mockMvc.perform(post("/").principal(() -> "test").contentType(MediaType.APPLICATION_JSON).content(json))
 				.andExpect(status().isBadRequest());
 	}
 }

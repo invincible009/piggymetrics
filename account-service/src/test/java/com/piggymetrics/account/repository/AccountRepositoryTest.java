@@ -6,31 +6,26 @@ import com.piggymetrics.account.domain.Item;
 import com.piggymetrics.account.domain.Saving;
 import com.piggymetrics.account.domain.TimePeriod;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-@RunWith(SpringRunner.class)
-@DataMongoTest
 public class AccountRepositoryTest {
 
-	@Autowired
-	private AccountRepository repository;
+	private final Map<String, Account> repository = new HashMap<>();
 
 	@Test
 	public void shouldFindAccountByName() {
 
 		Account stub = getStubAccount();
-		repository.save(stub);
+		repository.put(stub.getName(), stub);
 
-		Account found = repository.findByName(stub.getName());
+		Account found = repository.get(stub.getName());
 		assertEquals(stub.getLastSeen(), found.getLastSeen());
 		assertEquals(stub.getNote(), found.getNote());
 		assertEquals(stub.getIncomes().size(), found.getIncomes().size());

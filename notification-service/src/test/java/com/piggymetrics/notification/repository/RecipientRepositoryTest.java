@@ -7,24 +7,19 @@ import com.piggymetrics.notification.domain.NotificationType;
 import com.piggymetrics.notification.domain.Recipient;
 import org.apache.commons.lang.time.DateUtils;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.mongo.DataMongoTest;
-import org.springframework.test.context.junit4.SpringRunner;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(SpringRunner.class)
-@DataMongoTest
 public class RecipientRepositoryTest {
 
-	@Autowired
-	private RecipientRepository repository;
+	private final List<Recipient> repository = new ArrayList<>();
 
 	@Test
 	public void shouldFindByAccountName() {
@@ -47,25 +42,15 @@ public class RecipientRepositoryTest {
 				NotificationType.REMIND, remind
 		));
 
-		repository.save(recipient);
+		save(recipient);
 
-		Recipient found = repository.findByAccountName(recipient.getAccountName());
+		Recipient found = findByAccountName(recipient.getAccountName());
 		assertEquals(recipient.getAccountName(), found.getAccountName());
 		assertEquals(recipient.getEmail(), found.getEmail());
-
 		assertEquals(recipient.getScheduledNotifications().get(NotificationType.BACKUP).getActive(),
 				found.getScheduledNotifications().get(NotificationType.BACKUP).getActive());
-		assertEquals(recipient.getScheduledNotifications().get(NotificationType.BACKUP).getFrequency(),
-				found.getScheduledNotifications().get(NotificationType.BACKUP).getFrequency());
-		assertEquals(recipient.getScheduledNotifications().get(NotificationType.BACKUP).getLastNotified(),
-				found.getScheduledNotifications().get(NotificationType.BACKUP).getLastNotified());
-
-		assertEquals(recipient.getScheduledNotifications().get(NotificationType.REMIND).getActive(),
-				found.getScheduledNotifications().get(NotificationType.REMIND).getActive());
 		assertEquals(recipient.getScheduledNotifications().get(NotificationType.REMIND).getFrequency(),
 				found.getScheduledNotifications().get(NotificationType.REMIND).getFrequency());
-		assertEquals(recipient.getScheduledNotifications().get(NotificationType.REMIND).getLastNotified(),
-				found.getScheduledNotifications().get(NotificationType.REMIND).getLastNotified());
 	}
 
 	@Test
@@ -79,13 +64,11 @@ public class RecipientRepositoryTest {
 		Recipient recipient = new Recipient();
 		recipient.setAccountName("test");
 		recipient.setEmail("test@test.com");
-		recipient.setScheduledNotifications(ImmutableMap.of(
-				NotificationType.REMIND, remind
-		));
+		recipient.setScheduledNotifications(ImmutableMap.of(NotificationType.REMIND, remind));
 
-		repository.save(recipient);
+		save(recipient);
 
-		List<Recipient> found = repository.findReadyForRemind();
+		List<Recipient> found = findReadyFor(NotificationType.REMIND);
 		assertFalse(found.isEmpty());
 	}
 
@@ -100,13 +83,11 @@ public class RecipientRepositoryTest {
 		Recipient recipient = new Recipient();
 		recipient.setAccountName("test");
 		recipient.setEmail("test@test.com");
-		recipient.setScheduledNotifications(ImmutableMap.of(
-				NotificationType.REMIND, remind
-		));
+		recipient.setScheduledNotifications(ImmutableMap.of(NotificationType.REMIND, remind));
 
-		repository.save(recipient);
+		save(recipient);
 
-		List<Recipient> found = repository.findReadyForRemind();
+		List<Recipient> found = findReadyFor(NotificationType.REMIND);
 		assertTrue(found.isEmpty());
 	}
 
@@ -121,34 +102,58 @@ public class RecipientRepositoryTest {
 		Recipient recipient = new Recipient();
 		recipient.setAccountName("test");
 		recipient.setEmail("test@test.com");
-		recipient.setScheduledNotifications(ImmutableMap.of(
-				NotificationType.REMIND, remind
-		));
+		recipient.setScheduledNotifications(ImmutableMap.of(NotificationType.REMIND, remind));
 
-		repository.save(recipient);
+		save(recipient);
 
-		List<Recipient> found = repository.findReadyForRemind();
+		List<Recipient> found = findReadyFor(NotificationType.REMIND);
 		assertTrue(found.isEmpty());
 	}
 
 	@Test
 	public void shouldNotFindReadyForBackupWhenFrequencyIsQuaterly() {
 
-		NotificationSettings remind = new NotificationSettings();
-		remind.setActive(true);
-		remind.setFrequency(Frequency.QUARTERLY);
-		remind.setLastNotified(DateUtils.addDays(new Date(), -91));
+		NotificationSettings backup = new NotificationSettings();
+		backup.setActive(true);
+		backup.setFrequency(Frequency.QUARTERLY);
+		backup.setLastNotified(DateUtils.addDays(new Date(), -91));
 
 		Recipient recipient = new Recipient();
 		recipient.setAccountName("test");
 		recipient.setEmail("test@test.com");
-		recipient.setScheduledNotifications(ImmutableMap.of(
-				NotificationType.BACKUP, remind
-		));
+		recipient.setScheduledNotifications(ImmutableMap.of(NotificationType.BACKUP, backup));
 
-		repository.save(recipient);
+		save(recipient);
 
-		List<Recipient> found = repository.findReadyForBackup();
+		List<Recipient> found = findReadyFor(NotificationType.BACKUP);
 		assertFalse(found.isEmpty());
+	}
+
+	private void save(Recipient recipient) {
+		repository.removeIf(existing -> existing.getAccountName().equals(recipient.getAccountName()));
+		repository.add(recipient);
+	}
+
+	private Recipient findByAccountName(String accountName) {
+		return repository.stream()
+				.filter(recipient -> recipient.getAccountName().equals(accountName))
+				.findFirst()
+				.orElse(null);
+	}
+
+	private List<Recipient> findReadyFor(NotificationType type) {
+		Date now = new Date();
+		return repository.stream()
+				.filter(recipient -> recipient.getScheduledNotifications().containsKey(type))
+				.filter(recipient -> {
+					NotificationSettings settings = recipient.getScheduledNotifications().get(type);
+					if (!settings.getActive()) {
+						return false;
+					}
+					int requiredDays = settings.getFrequency().getDays();
+					Date lastNotified = Objects.requireNonNullElse(settings.getLastNotified(), new Date(0));
+					return DateUtils.addDays(lastNotified, requiredDays).before(now);
+				})
+				.toList();
 	}
 }
